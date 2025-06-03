@@ -1,32 +1,124 @@
-<!DOCTYPE html>
-<html lang="es">
+<!DOCTYPE html><html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Trivia Psicosis y Diverticulitis</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trivial de Adrián</title>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body>
+<body class="bg-gradient-to-br from-blue-800 via-indigo-700 to-purple-600 text-white min-h-screen flex flex-col items-center justify-center p-4">  <div id="start-screen" class="text-center space-y-6">
+    <h1 class="text-4xl font-extrabold">Bienvenidos al Trivial de Adrián</h1>
+    <button id="start-btn" class="mt-4 px-6 py-3 bg-yellow-400 text-blue-900 rounded-lg font-bold hover:bg-yellow-500 transition">Comenzar Juego</button>
+  </div>  <div id="quiz-screen" class="hidden max-w-2xl w-full space-y-4 mt-8">
+    <div class="text-right text-sm">Tiempo restante: <span id="timer" class="font-bold">06:00</span></div>
+    <div id="question" class="text-xl font-semibold min-h-[4rem]"></div>
+    <div id="options" class="space-y-3"></div>
+    <div id="feedback" class="text-lg font-semibold"></div>
+    <div id="correct-answer" class="italic"></div>
+    <button id="next-btn" class="mt-4 px-5 py-2 bg-yellow-400 text-blue-900 rounded-lg font-semibold hover:bg-yellow-500 transition hidden">Siguiente Pregunta</button>
+  </div>  <div id="score-screen" class="hidden text-center space-y-6 mt-8">
+    <h2 class="text-3xl font-extrabold">¡Juego Terminado!</h2>
+    <p id="score-text" class="text-2xl"></p>
+    <button onclick="location.reload()" class="px-6 py-3 bg-yellow-400 text-blue-900 rounded-lg font-bold hover:bg-yellow-500 transition">Jugar de Nuevo</button>
+  </div>  <script>
+    let questions = [];
+    let currentQuestion = 0;
+    let score = 0;
+    let timer;
+    let timeLeft = 360; // 6 minutos en segundos
 
-  <div class="container">
-    <h1>Trivia médica</h1>
-    
-    <div id="category-selection">
-      <h2>Selecciona una categoría</h2>
-      <div id="categories"></div>
-    </div>
+    const startBtn = document.getElementById("start-btn");
+    const quizScreen = document.getElementById("quiz-screen");
+    const startScreen = document.getElementById("start-screen");
+    const scoreScreen = document.getElementById("score-screen");
+    const questionEl = document.getElementById("question");
+    const optionsEl = document.getElementById("options");
+    const feedbackEl = document.getElementById("feedback");
+    const correctAnswerEl = document.getElementById("correct-answer");
+    const nextBtn = document.getElementById("next-btn");
+    const scoreText = document.getElementById("score-text");
+    const timerEl = document.getElementById("timer");
 
-    <div id="quiz" style="display:none;">
-      <div id="question-container">
-        <p id="question-text"></p>
-        <div id="options"></div>
-      </div>
+    startBtn.addEventListener("click", startGame);
+    nextBtn.addEventListener("click", nextQuestion);
 
-      <button id="next-btn">Siguiente</button>
-      <p id="result"></p>
-    </div>
-  </div>
+    async function startGame() {
+      const res = await fetch("preguntas.json");
+      const data = await res.json();
+      questions = shuffle(data);
+      startScreen.classList.add("hidden");
+      quizScreen.classList.remove("hidden");
+      startTimer();
+      showQuestion();
+    }
 
-  <script src="script.js"></script>
-</body>
+    function showQuestion() {
+      const q = questions[currentQuestion];
+      questionEl.textContent = q.question;
+      optionsEl.innerHTML = "";
+      feedbackEl.textContent = "";
+      correctAnswerEl.textContent = "";
+      nextBtn.classList.add("hidden");
+
+      q.options.forEach((opt, i) => {
+        const btn = document.createElement("button");
+        btn.textContent = opt;
+        btn.className = "w-full bg-yellow-300 hover:bg-yellow-400 text-blue-900 font-bold py-2 px-4 rounded transition";
+        btn.addEventListener("click", () => selectAnswer(i));
+        optionsEl.appendChild(btn);
+      });
+    }
+
+    function selectAnswer(selectedIndex) {
+      const q = questions[currentQuestion];
+      const correct = q.correctIndex;
+
+      if (selectedIndex === correct) {
+        feedbackEl.textContent = "✅ ¡Correcto!";
+        feedbackEl.className = "text-green-300 font-bold";
+        score++;
+      } else {
+        feedbackEl.textContent = "❌ Incorrecto";
+        feedbackEl.className = "text-red-400 font-bold";
+        correctAnswerEl.textContent = `Respuesta correcta: ${q.options[correct]}`;
+      }
+
+      document.querySelectorAll("#options button").forEach(btn => btn.disabled = true);
+      nextBtn.classList.remove("hidden");
+    }
+
+    function nextQuestion() {
+      currentQuestion++;
+      if (currentQuestion < questions.length && timeLeft > 0) {
+        showQuestion();
+      } else {
+        endGame();
+      }
+    }
+
+    function endGame() {
+      clearInterval(timer);
+      quizScreen.classList.add("hidden");
+      scoreScreen.classList.remove("hidden");
+      scoreText.textContent = `Tu puntuación fue ${score} de ${questions.length}`;
+    }
+
+    function startTimer() {
+      updateTimerDisplay();
+      timer = setInterval(() => {
+        timeLeft--;
+        updateTimerDisplay();
+        if (timeLeft <= 0) endGame();
+      }, 1000);
+    }
+
+    function updateTimerDisplay() {
+      const min = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+      const sec = (timeLeft % 60).toString().padStart(2, '0');
+      timerEl.textContent = `${min}:${sec}`;
+    }
+
+    function shuffle(array) {
+      return array.sort(() => Math.random() - 0.5);
+    }
+  </script></body>
 </html>
